@@ -1,0 +1,54 @@
+const { Client } = require('discord.js-selfbot-v13');
+const axios = require('axios');
+
+const client = new Client();
+
+// قائمة بتات Adopt Me التي تريد مراقبتها
+const targetPets = [
+  'shadow dragon', 'bat dragon', 'giraffe', 'frost dragon', 
+  'owl', 'crow', 'evil unicorn', 'parrot'
+];
+
+const TARGET_GUILD_ID = process.env.TARGET_GUILD_ID;
+const MY_WEBSITE_API = process.env.MY_WEBSITE_API_URL;
+const SECRET_KEY = process.env.INTERNAL_SECRET_KEY;
+
+client.on('ready', () => {
+  console.log(`[+] البوت شغال بحساب: ${client.user.tag}`);
+});
+
+client.on('messageCreate', async (message) => {
+  if (TARGET_GUILD_ID && message.guildId !== TARGET_GUILD_ID) return;
+
+  const contentLower = message.content.toLowerCase();
+  const matchedPets = targetPets.filter(pet => contentLower.includes(pet));
+
+  if (matchedPets.length > 0) {
+    const payload = {
+      author: {
+        id: message.author.id,
+        username: message.author.tag,
+        avatar: message.author.displayAvatarURL()
+      },
+      content: message.content,
+      matchedPets: matchedPets,
+      channelName: message.channel.name,
+      messageUrl: message.url,
+      timestamp: message.createdAt
+    };
+
+    try {
+      await axios.post(MY_WEBSITE_API, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SECRET_KEY}`
+        }
+      });
+      console.log(`[✔] تم نقل العرض لموقعك: ${message.id}`);
+    } catch (error) {
+      console.error(`[✖] فشل إرسال العرض لموقعك:`, error.message);
+    }
+  }
+});
+
+client.login(process.env.DISCORD_TOKEN);
